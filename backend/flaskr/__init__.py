@@ -51,15 +51,18 @@ def create_app(test_config=None):
     @app.route('/categories')
     def all_categories():
         query = Category.query.order_by(Category.id).all()
-
         if len(query) == 0:
             abort(422)
         else:
-            formatted_query = [category.type for category in query]
-
+            response = {}
+            for index in range(len(query)):
+                category = query[index].type
+                key = index + 1
+                response[key] = category
+            
         return jsonify({
             'success': True,
-            'categories': formatted_query})
+            'categories': response})
 
     '''
     Create a GET endpoint to get questions based on category. 
@@ -70,8 +73,7 @@ def create_app(test_config=None):
     '''
     @app.route('/categories/<int:category_id>/questions', methods=['GET'])
     def category_by_id(category_id):
-        formatted_category_id = category_id + 1
-        category = Category.query.filter(Category.id == formatted_category_id).one_or_none()
+        category = Category.query.filter(Category.id == category_id).one_or_none()
         
         if category is None:
             abort(422)
@@ -84,7 +86,8 @@ def create_app(test_config=None):
             'questions': formatted_questions_with_id,
             'total_questions': len(questions_with_id),
             'questions_per_page': len(formatted_questions_with_id),
-            'current_category': category_id})
+            'current_category': category.type,
+            'current_category_id': category.id})
 
 
     @app.route('/questions', methods=['GET', 'POST'])
@@ -103,11 +106,16 @@ def create_app(test_config=None):
             Clicking on the page numbers should update the questions. 
             '''
             if request.method == 'GET':
-                all_questions = Question.query.order_by(Question.category).all()
-                all_categories = Category.query.all()
+                all_questions = Question.query.order_by(Question.id).all()
+                all_categories = Category.query.order_by(Category.id).all()
                 page = request.args.get('page', 1, type=int)
                 formatted_questions = paginated_questions(request, all_questions)
-                formatted_categories = [category.type for category in all_categories]
+                
+                formatted_categories = {}
+                for index in range(len(all_categories)):
+                    category = all_categories[index].type
+                    key = index + 1
+                    formatted_categories[key] = category
 
                 response = {
                     'success': True,
@@ -115,7 +123,7 @@ def create_app(test_config=None):
                     'total_questions': len(all_questions),
                     'questions_per_page': len(formatted_questions),
                     'categories': formatted_categories,
-                    'current_category': 'all',
+                    'current_category': formatted_categories,
                     'page': page}
 
             '''
@@ -172,7 +180,6 @@ def create_app(test_config=None):
                     'success': True,
                 }
             return jsonify(response)
-
 
     '''
     @TODO: 
