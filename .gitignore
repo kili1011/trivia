@@ -2,10 +2,10 @@
 __pycache__
 venv
 node_modules
+notes.txt
 
 backend/env
 backend/__pycache__
-
 
 
 # OS generated files #
