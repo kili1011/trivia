@@ -66,15 +66,17 @@ One note before you delve into your tasks: for each endpoint you are expected to
 8. Create a POST endpoint to get questions to play the quiz. This endpoint should take category and previous question parameters and return a random questions within the given category, if provided, and that is not one of the previous questions. 
 9. Create error handlers for all expected errors including 400, 404, 422 and 500. 
 
-REVIEW_COMMENT
-```
-This README is missing documentation of your endpoints. Below is an example for your endpoint to get all categories. Please use it as a reference for creating your documentation and resubmit your code. 
 
-Endpoints
+## Endpoints
+
+```
 GET '/categories'
-GET ...
-POST ...
-DELETE ...
+GET '/questions'
+GET '/questions/<int:question_id>'
+POST '/questions'
+POST '/quizzes'
+DELETE '/questions/<int:question_id>'
+```
 
 GET '/categories'
 - Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
@@ -87,7 +89,60 @@ GET '/categories'
 '5' : "Entertainment",
 '6' : "Sports"}
 
-```
+
+GET '/questions'
+- Fetches a List of all questions and a dictionary of categories
+- Request Arguments: Its possible to add a query parameter ?page 
+- Returns with page query parameter: 
+{'success': True,
+'questions': formatted_questions,
+'total_questions': len(all_questions),
+'questions_per_page': len(formatted_questions),
+'categories': formatted_categories,
+'current_category': 0,
+'page': page}
+
+
+POST '/questions'
+- Response depends weather there is a searchTerm in JSON included
+- If there is no searchTerm in Request it creates a new Question
+- Request Arguments: {question, answer, category, difficulty}
+- If there is a searchTerm it will response:
+{'success': True,
+'questions': formatted_questions,
+'total_questions': len(questions_from_search)
+
+
+GET '/questions/id'
+- Fetches a list of the question with the corresponding id
+- Request Arguments: None  
+- Returns: If Id exists it will return an object with a single question
+{'id': self.id,
+'question': self.question,
+'answer': self.answer,
+'category': self.category,
+'difficulty': self.difficulty
+}
+
+
+DELETE '/questions/id'
+- Deletes the question with the corresponding id
+- If Id exists it will remove the object from the database
+
+
+POST '/quizzes'
+- Fetches a random question from the database due to the quiz category
+- Request Arguments: 
+{'previous_questions': [],
+'quiz_category': {
+    'id': '1',
+    'type': 'Science'
+    }
+}
+- Returns: An object with the next question
+{"success": True,
+"question": next_question
+}
 
 
 ## Testing

@@ -106,27 +106,40 @@ def create_app(test_config=None):
             Clicking on the page numbers should update the questions. 
             '''
             if request.method == 'GET':
-                all_questions = Question.query.order_by(Question.id).all()
+                # Get categories and format them as dictionary
                 all_categories = Category.query.order_by(Category.id).all()
-                page = request.args.get('page', 1, type=int)
-                formatted_questions = paginated_questions(request, all_questions)
                 formatted_categories = {}
                 for index in range(len(all_categories)):
                     category = all_categories[index].type
                     key = index + 1
                     formatted_categories[key] = category
-                response = {
-                    'success': True,
-                    'questions': formatted_questions,
-                    'total_questions': len(all_questions),
-                    'questions_per_page': len(formatted_questions),
-                    'categories': formatted_categories,
-                    'current_category': 0,
-                    'page': page}
+                # Check request parameters
+                param = request.args.get('page', None, type=int)
+                if param is None:
+                    all_questions = Question.query.order_by(Question.id).all()
+                    formatted_questions = [question.format() for question in all_questions]
+                    response = {
+                        'success': True,
+                        'questions': formatted_questions,
+                        'total_questions': len(all_questions),
+                        'categories': formatted_categories,
+                        'current_category': 0}
+                else:
+                    all_questions = Question.query.order_by(Question.id).all()    
+                    page = request.args.get('page', 1, type=int)
+                    formatted_questions = paginated_questions(request, all_questions)                    
+                    response = {
+                        'success': True,
+                        'questions': formatted_questions,
+                        'total_questions': len(all_questions),
+                        'questions_per_page': len(formatted_questions),
+                        'categories': formatted_categories,
+                        'current_category': 0,
+                        'page': page}
 
             if request.method == 'POST':
                 body = request.get_json()
-                if body['searchTerm']:
+                if 'searchTerm' in body:
                     '''
                     Create a POST endpoint to get questions based on a search term. 
                     It should return any questions for whom the search term 
@@ -172,9 +185,9 @@ def create_app(test_config=None):
                     }
         except: 
             error = True
-            abort(422)
         if error:
             print(sys.exc_info())
+            abort(422)
         else:
             return jsonify(response)
 
@@ -225,10 +238,12 @@ def create_app(test_config=None):
                 "question": False
             }
         else:
-            for question in questions:
-                if  question.id not in previous_questions:
-                    next_question = question.format()
-                    break
+            index = True
+            while index:
+                question_generator = random.choice(questions.all())
+                if  question_generator.id not in previous_questions:
+                    next_question = question_generator.format()
+                    index = False 
             response = {
                 "success": True,
                 "question": next_question
