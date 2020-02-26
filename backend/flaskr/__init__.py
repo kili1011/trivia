@@ -110,47 +110,69 @@ def create_app(test_config=None):
                 all_categories = Category.query.order_by(Category.id).all()
                 page = request.args.get('page', 1, type=int)
                 formatted_questions = paginated_questions(request, all_questions)
-                
                 formatted_categories = {}
                 for index in range(len(all_categories)):
                     category = all_categories[index].type
                     key = index + 1
                     formatted_categories[key] = category
-
                 response = {
                     'success': True,
                     'questions': formatted_questions,
                     'total_questions': len(all_questions),
                     'questions_per_page': len(formatted_questions),
                     'categories': formatted_categories,
-                    'current_category': formatted_categories,
+                    'current_category': 0,
                     'page': page}
 
-            '''
-            Create an endpoint to POST a new question, 
-            which will require the question and answer text, 
-            category, and difficulty score.
-
-            TEST: When you submit a question on the "Add" tab, 
-            the form will clear and the question will appear at the end of the last page
-            of the questions list in the "List" tab.  
-            '''
             if request.method == 'POST':
                 body = request.get_json()
-                new_question = Question(
-                    body['question'],   
-                    body['answer'],
-                    body['category'],
-                    body['difficulty'])
-                new_question.insert()
-                db.session.close()
-                
-                response = {
-                    'success': True,
-                }
+                if body['searchTerm']:
+                    '''
+                    Create a POST endpoint to get questions based on a search term. 
+                    It should return any questions for whom the search term 
+                    is a substring of the question. 
+
+                    TEST: Search by any phrase. The questions list will update to include 
+                    only question that include that string within their question. 
+                    Try using the word "title" to start. 
+                    '''
+                    query = Question.query.filter(Question.question.ilike('%' + 
+                        body['searchTerm'] + '%'))
+                    if query.count() == 0:
+                        response = {
+                            'success': False,
+                            'total_questions': 0}
+                    else:
+                        questions_from_search = query.all()
+                        formatted_questions = [question.format() for question in questions_from_search]
+                        response = {
+                            'success': True,
+                            'questions': formatted_questions,
+                            'total_questions': len(questions_from_search)
+                        }
+                else:
+                    '''
+                    Create an endpoint to POST a new question, 
+                    which will require the question and answer text, 
+                    category, and difficulty score.
+
+                    TEST: When you submit a question on the "Add" tab, 
+                    the form will clear and the question will appear at the end of the last page
+                    of the questions list in the "List" tab.  
+                    '''
+                    new_question = Question(
+                        body['question'],   
+                        body['answer'],
+                        body['category'],
+                        body['difficulty'])
+                    new_question.insert()
+                    db.session.close()
+                    response = {
+                        'success': True,
+                    }
         except: 
             error = True
-            abort(404)
+            abort(422)
         if error:
             print(sys.exc_info())
         else:
@@ -182,18 +204,6 @@ def create_app(test_config=None):
             return jsonify(response)
 
     '''
-    @TODO: 
-    Create a POST endpoint to get questions based on a search term. 
-    It should return any questions for whom the search term 
-    is a substring of the question. 
-
-    TEST: Search by any phrase. The questions list will update to include 
-    only question that include that string within their question. 
-    Try using the word "title" to start. 
-    '''
-
-    '''
-    @TODO: 
     Create a POST endpoint to get questions to play the quiz. 
     This endpoint should take category and previous question parameters 
     and return a random questions within the given category, 
@@ -203,6 +213,28 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not. 
     '''
+    @app.route('/quizzes', methods=['POST'])
+    def play_quiz():
+        body = request.get_json()
+        previous_questions = body['previous_questions']
+        category = body['quiz_category']
+        questions = Question.query.filter(Question.category == category['id'])
+        if len(previous_questions) == questions.count():
+            response = {
+                "sucess": True,
+                "question": False
+            }
+        else:
+            for question in questions:
+                if  question.id not in previous_questions:
+                    next_question = question.format()
+                    break
+            response = {
+                "success": True,
+                "question": next_question
+            }
+        return jsonify(response)
+
 
     # ----------------------------------------------------------- #
     # Error Handlers.
@@ -219,6 +251,14 @@ def create_app(test_config=None):
             "error": 404,
             "message": "Not found"
             }), 404
+
+    @app.errorhandler(405)
+    def not_found(error):
+        return jsonify({
+            "success": False, 
+            "error": 404,
+            "message": "Method not allowed"
+            }), 405
 
     @app.errorhandler(422)
     def not_found(error):
